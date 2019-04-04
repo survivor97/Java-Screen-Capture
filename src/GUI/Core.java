@@ -3,6 +3,7 @@ import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
+import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.event.ActionEvent;
@@ -62,10 +63,14 @@ public class Core extends JFrame {
 	//Strings
 	public String currentPath;
 	
+	//Integers
+	private int totalNrOfDisplays;
+	private int selectedDisplay;
+	
 	public Core(String title, int width, int height) {
 		
 		super(title);		
-		Color mainColor = new Color(0, 189, 172);
+		Color mainColor = new Color(128, 195, 221);
 		getContentPane().setBackground(mainColor);
 		
 		//BUTTONS
@@ -74,6 +79,16 @@ public class Core extends JFrame {
 		
 		screenshotButton = addButton("Take", 250, 400, 100, 20);
 		takeScreenshot(screenshotButton);
+		
+		selectScreenLeft = addButton("<", 430, 20, 20, 20);
+		selectScreenLeft.setMargin(new Insets(0, 0, 0, 0));	
+		selectScreenLeft.setBorder(null);
+		decrementSelectedDisplay(selectScreenLeft);
+		
+		selectScreenRight = addButton(">", 480, 20, 20, 20);
+		selectScreenRight.setMargin(new Insets(0, 0, 0, 0));
+		selectScreenRight.setBorder(null);
+		incrementSelectedDisplay(selectScreenRight);
 
 		//TEXT AREA
 		textArea = addTextArea(0, 0, 0, 0, false);
@@ -82,15 +97,18 @@ public class Core extends JFrame {
 		
 		//LABELS
 		lNrOfDisplays = addLabel("Number of Displays Detected: ", 100 , 20, 180, 20);
-		lSelectedDisplay = addLabel("Selected Display: ", 340, 20, 180, 20);
+		lSelectedDisplay = addLabel("Selected Display: ", 325, 20, 180, 20);
 		lScreenshotName = addLabel("Screenshot Name: ", 100, 320, 120, 20);
 		
 		//TEXT FIELDs
-		//UNEDITABLE
-		tTotalNrOfDisplays = addTextField("0", 280, 20, 20, 20, false);		
-		tSelectedDisplay = addTextField("0", 450, 20, 20, 20, false);
+		//NOT EDITABLE
+		tTotalNrOfDisplays = addTextField("0", 275, 20, 20, 20, false);		
+		tTotalNrOfDisplays.setHorizontalAlignment(JTextField.CENTER);
+		
+		tSelectedDisplay = addTextField("0", 455, 20, 20, 20, false);
+		tSelectedDisplay.setHorizontalAlignment(JTextField.CENTER);
 		//EDITABLE
-		tScreenshotName = addTextField("screenshot", 240, 320, 160, 20, true);
+		tScreenshotName = addTextField("screen", 240, 320, 160, 20, true);
 		
 		//File Chooser
 		jfc = new JFileChooser();
@@ -107,8 +125,10 @@ public class Core extends JFrame {
 		//DISPLAY Stuff
 		ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		gd = ge.getScreenDevices();
-		selectedDisplayRectangle = new Rectangle(gd[0].getDefaultConfiguration().getBounds().x, gd[0].getDefaultConfiguration().getBounds().y);
-		tSelectedDisplay.setText("1");	
+		selectedDisplay = 0;
+		selectedDisplayRectangle = new Rectangle(gd[selectedDisplay].getDefaultConfiguration().getBounds().x, gd[selectedDisplay].getDefaultConfiguration().getBounds().y);
+		tSelectedDisplayUpdate();	
+		totalNrOfDisplays = Integer.parseInt(String.valueOf(gd.length));		
 		tTotalNrOfDisplays.setText(String.valueOf(gd.length));
 		
 		//Other Stuff
@@ -166,14 +186,15 @@ public class Core extends JFrame {
 			public void actionPerformed(ActionEvent e) {  
 				BufferedImage screen;
 				if(currentPath != null) {					
-					write("graphics devices: "+gd.length+"; Rectangle: x:"+gd[0].getDefaultConfiguration().getBounds().x+"; y: "+gd[0].getDefaultConfiguration().getBounds().y);
-					screen = robo.createScreenCapture(new Rectangle(gd[0].getDefaultConfiguration().getBounds().x, gd[0].getDefaultConfiguration().getBounds().y, gd[0].getDefaultConfiguration().getBounds().width, gd[0].getDefaultConfiguration().getBounds().height));
+					screen = robo.createScreenCapture(new Rectangle(gd[selectedDisplay].getDefaultConfiguration().getBounds().x, gd[selectedDisplay].getDefaultConfiguration().getBounds().y, gd[selectedDisplay].getDefaultConfiguration().getBounds().width, gd[selectedDisplay].getDefaultConfiguration().getBounds().height));
 					try {
 						File filePath;
 						for(int i=0; i<999999; i++) {
 							filePath = new File(currentPath+"/"+tScreenshotName.getText()+"_"+String.valueOf(i)+".png");
 							if(!filePath.isFile()) {
 								ImageIO.write(screen, "png", filePath);
+								//[DEBUG]write("graphics devices: "+gd.length+"; Rectangle: x:"+gd[selectedDisplay].getDefaultConfiguration().getBounds().x+"; y: "+gd[selectedDisplay].getDefaultConfiguration().getBounds().y);
+								write("Screen '"+tScreenshotName.getText()+"_"+i+"' captured.");
 								break;
 							}
 						}						
@@ -202,7 +223,33 @@ public class Core extends JFrame {
 			}  
 		});  
 	}
+	
+	private void incrementSelectedDisplay(JButton button) {
+		button.addActionListener(new ActionListener() {  
+			public void actionPerformed(ActionEvent e) { 
+				if(selectedDisplay < totalNrOfDisplays - 1) {
+					selectedDisplay++;
+					tSelectedDisplayUpdate();
+				}					
+			}  
+		}); 
+	}
+	
+	private void decrementSelectedDisplay(JButton button) {
+		button.addActionListener(new ActionListener() {  
+			public void actionPerformed(ActionEvent e) { 
+				if(selectedDisplay > 0) {
+					selectedDisplay--;
+					tSelectedDisplayUpdate();
+				}					
+			}  
+		}); 
+	}
 
+	private void tSelectedDisplayUpdate() {
+		tSelectedDisplay.setText(String.valueOf(selectedDisplay+1));
+	}
+	
 	public void write(String input) {
 		textArea.append(input+"\n");		
 	}
